@@ -4,12 +4,11 @@ const createApartment = async (req, res) => {
     try {
       const { title, description, address, rent, amenities, available } = req.body;
   
-      // Ensure at least 5 images are uploaded
+     
       if (!req.files || req.files.length < 5) {
         return res.status(400).json({ error: "At least 5 images are required" });
       }
   
-      // Get uploaded image URLs
       const images = req.files.map(file => file.path); 
   
       const apartment = await Apartment.create({
@@ -20,7 +19,7 @@ const createApartment = async (req, res) => {
         rent,
         images,
         available,
-        amenities: amenities.split(',').map(a => a.trim()) // Convert to an array
+        amenities: amenities.split(',').map(a => a.trim()) 
       });
   
       res.status(201).json(apartment);
