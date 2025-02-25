@@ -29,7 +29,16 @@ const userSchema = new mongoose.Schema({
         type: Boolean,
         default: false,
     },
-    phoneNumber: String,
+    phoneNumber: {
+        type: String,
+        trim: true,
+        validate: {
+            validator: function(value) {
+                return /^\+?\d{1,15}$/.test(value);
+            },
+            message: 'Invalid phone number format.'
+        },
+    },
     createdAt: {
         type: Date,
         default: Date.now,
