@@ -12,6 +12,7 @@ const apartmentSchema = new mongoose.Schema({
     neighborhood: { type: String }
   },
   rent: { type: Number, required: true },
+  bedrooms: {type: Number, required: true},
   images: { type: [String], required: true },
   views: { type: Number, default: 0 },
   likes: { type: Number, default: 0 },
