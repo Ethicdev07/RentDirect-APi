@@ -9,6 +9,9 @@ const {
   getAll,
   update,
   deleteApartment,
+  incrementViews,
+  toggleLike,
+  addComment,
 } = require("../controllers/apartmentcontroller");
 
 router.post("/", protect, imageUploads, async (req, res) => {
@@ -33,5 +36,8 @@ router.get("/:id", getOne);
 router.get("/", getAll);
 router.put("/:id", protect, update);
 router.delete("/:id", protect, deleteApartment);
+router.put("/:id/views", incrementViews);
+router.put("/:id/like", protect, toggleLike);
+router.post("/:id/comment", protect, addComment);
 
 module.exports = router;

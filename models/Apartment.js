@@ -19,7 +19,7 @@ const apartmentSchema = new mongoose.Schema({
   bedrooms: {type: Number, required: true},
   images: { type: [String], required: true },
   views: { type: Number, default: 0 },
-  likes: { type: Number, default: 0 },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }], 
   comments: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Comment' }],
   amenities: { type: [String], required: true },
   available: { type: Boolean, default: true },

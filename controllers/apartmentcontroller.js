@@ -1,6 +1,7 @@
 const Apartment = require("../models/Apartment");
 const cloudinary = require("../utils/cloudinary");
 const { getCoordinates } = require("../utils/geolocation");
+const Comment = require("../models/Comment"); 
 
 const createApartment = async (req, res) => {
   try {
@@ -282,6 +283,78 @@ const searchApartments = async (req, res) => {
   }
 };
 
+const incrementViews = async(req, res) => {
+  try {
+    const { id } = req.params;
+
+    const apartment = await  Apartment.findByIdAndUpdate(
+      id,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+    if(!apartment) {
+      return res.status(404).json({success: false, error: "Apartment not found"});
+    }
+    return res.status(200).json({success: true, data: apartment});
+  } catch (error) {
+    return res.status(500).json({success:false, error: "Server Error", details: error.message});
+  }
+};
+
+const toggleLike = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user._id; 
+
+    const apartment = await Apartment.findById(id);
+    if (!apartment) {
+      return res.status(404).json({ success: false, error: "Apartment not found" });
+    }
+
+    const hasLiked = apartment.likes.includes(userId);
+
+    if (hasLiked) {
+      apartment.likes = apartment.likes.filter((id) => id.toString() !== userId.toString());
+    } else {
+      apartment.likes.push(userId);
+    }
+
+    await apartment.save();
+
+    return res.status(200).json({ success: true, data: apartment, message: hasLiked ? "Unliked" : "Liked" });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Server Error", details: error.message });
+  }
+};
+
+
+const addComment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { text } = req.body;
+    const userId = req.user._id;
+
+    if (!text) {
+      return res.status(400).json({ success: false, error: "Comment text is required" });
+    }
+
+    const apartment = await Apartment.findById(id);
+    if (!apartment) {
+      return res.status(404).json({ success: false, error: "Apartment not found" });
+    }
+
+    const comment = await Comment.create({ user: userId, text, apartment: id });
+
+    apartment.comments.push(comment._id);
+    await apartment.save();
+
+    return res.status(201).json({ success: true, data: comment });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: "Server Error", details: error.message });
+  }
+};
+
+
 module.exports = {
   createApartment,
   getAll,
@@ -289,4 +362,7 @@ module.exports = {
   update,
   deleteApartment,
   searchApartments,
+  incrementViews,
+  toggleLike,
+  addComment,
 };
