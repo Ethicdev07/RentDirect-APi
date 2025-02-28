@@ -9,7 +9,11 @@ const apartmentSchema = new mongoose.Schema({
     city: { type: String, required: true },
     state: { type: String, required: true },
     zipCode: { type: String },
-    neighborhood: { type: String }
+    neighborhood: { type: String },
+    coordinates: {
+      type: { type: String, enum: ['Point'], default: 'Point' }, 
+      coordinates: { type: [Number], required: true, index: '2dsphere' } 
+    }
   },
   rent: { type: Number, required: true },
   bedrooms: {type: Number, required: true},
@@ -22,6 +26,10 @@ const apartmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
+// Create a 2Dsphere index on the location field to enable geospatial queries.
+apartmentSchema.index({ 'location.coordinates': '2dsphere' });
+
 const Apartment = mongoose.model('Apartment', apartmentSchema);
+
 
 module.exports = Apartment;

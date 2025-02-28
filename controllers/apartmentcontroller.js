@@ -45,8 +45,8 @@ const createApartment = async (req, res) => {
         address,
         city,
         state,
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
+        latitude: location.latitude,
+        longitude: location.longitude,
       },
       rent,
       bedrooms,
@@ -179,10 +179,49 @@ const deleteApartment = async (req, res) => {
 
 const searchApartments = async (req, res) => {
   try {
-    const { query, latitude, longitude, maxDistance = 5000 } = req.query;
+    const {
+      query,
+      latitude,
+      longitude,
+      maxDistance = 5000,
+      address,
+    } = req.query;
     let filter = {};
     let orConditions = [];
 
+    // If an address is provided, fetch coordinates using geolocation
+    if (address) {
+      const { getCoordinates } = require("../utils/geolocation");
+      const location = await getCoordinates(address);
+
+      if (!location) {
+        return res.status(400).json({ error: "Invalid address provided" });
+      }
+
+      // Use the found latitude and longitude in the search filter
+      filter.location = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [location.longitude, location.latitude],
+          },
+          $maxDistance: parseInt(maxDistance), // Convert string to number
+        },
+      };
+    } else if (latitude && longitude) {
+      // If coordinates are provided, use them for nearby filtering
+      filter.location = {
+        $near: {
+          $geometry: {
+            type: "Point",
+            coordinates: [parseFloat(longitude), parseFloat(latitude)],
+          },
+          $maxDistance: parseInt(maxDistance),
+        },
+      };
+    }
+
+    // Process keyword-based search
     if (query) {
       const keywords = query.toLowerCase().split(/\s+/);
       const bedroomKeyword = keywords.find((k) => /^\d+bed(room)?$/.test(k));
@@ -231,18 +270,6 @@ const searchApartments = async (req, res) => {
     }
 
     if (orConditions.length > 0) filter.$or = orConditions;
-
-    if (latitude && longitude) {
-      filter.location = {
-        $near: {
-          $geometry: {
-            type: "Point",
-            coordinates: [parseFloat(longitude), parseFloat(latitude)],
-          },
-          $maxDistance: parseInt(maxDistance),
-        },
-      };
-    }
 
     const apartments = await Apartment.find(filter);
     return res
