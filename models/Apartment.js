@@ -26,7 +26,7 @@ const apartmentSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-// Create a 2Dsphere index on the location field to enable geospatial queries.
+
 apartmentSchema.index({ 'location.coordinates': '2dsphere' });
 
 const Apartment = mongoose.model('Apartment', apartmentSchema);
