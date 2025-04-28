@@ -3,7 +3,7 @@ const cloudinary = require("../utils/cloudinary");
 const { getCoordinates } = require("../utils/geolocation");
 const Comment = require("../models/Comment"); 
 
-const createApartment = async (req, res) => {
+const createApartment = async (req, res, next) => {
   try {
     const {
       title,
@@ -59,11 +59,11 @@ const createApartment = async (req, res) => {
 
     res.status(201).json(apartment);
   } catch (error) {
-    res.status(400).json({ error: error.message });
+    next(error)
   }
 };
 
-const getAll = async (req, res) => {
+const getAll = async (req, res, next) => {
   try {
     const apartments = await Apartment.find();
     return res.status(200).json({

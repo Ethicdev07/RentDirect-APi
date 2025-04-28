@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const apartmentSchema = new mongoose.Schema({
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Landlord' },
   title: { type: String, required: true },
   description: { type: String, required: true },
   location: {
