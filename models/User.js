@@ -25,9 +25,21 @@ const userSchema = new mongoose.Schema({
         sparse: true,
     },
     profilePicture: String,
+
     isEmailVerified: {
         type: Boolean,
         default: false,
+    },
+    role: {
+        type: String,
+        enum: ['user', 'landlord'],
+        default: 'user',
+    },
+    otp: {
+        type: String,
+    },
+    otpExpires: {
+        type: Date,
     },
     phoneNumber: {
         type: String,

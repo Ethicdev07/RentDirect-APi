@@ -1,7 +1,7 @@
 const mongoose = require('mongoose');
 
 const apartmentSchema = new mongoose.Schema({
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: 'Landlord' },
+  landlord: { type: mongoose.Schema.Types.ObjectId, ref: 'Landlord' },
   title: { type: String, required: true },
   description: { type: String, required: true },
   location: {
@@ -15,7 +15,7 @@ const apartmentSchema = new mongoose.Schema({
       coordinates: { type: [Number], required: true, index: '2dsphere' } 
     }
   },
-  rent: { type: Number, required: true },
+  price: { type: Number, required: true },
   bedrooms: {type: Number, required: true},
   images: { type: [String], required: true },
   views: { type: Number, default: 0 },

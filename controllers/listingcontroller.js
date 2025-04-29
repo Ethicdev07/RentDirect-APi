@@ -1,22 +1,25 @@
 const Apartment = require("../models/Apartment");
+const Landlord = require("../models/Landlord");
 const cloudinary = require("../utils/cloudinary");
 const { getCoordinates } = require("../utils/geolocation");
 const Comment = require("../models/Comment"); 
 
 const createApartment = async (req, res, next) => {
+  const {
+    title,
+    description,
+    address,
+    city,
+    state,
+    price,
+    bedrooms,
+    amenities,
+    available,
+  } = req.body;
   try {
-    const {
-      title,
-      description,
-      address,
-      city,
-      state,
-      rent,
-      bedrooms,
-      amenities,
-      available,
-    } = req.body;
-
+    const landlord = await Landlord.findOne({ user: req.user._id });
+    if(!landlord) return res.status(403).json({ error: "Only approved landlords can list apartments" });
+  
     if (!req.files || req.files.length < 5) {
       return res.status(400).json({ error: "At least 5 images are required" });
     }
@@ -39,7 +42,7 @@ const createApartment = async (req, res, next) => {
     );
 
     const apartment = await Apartment.create({
-      owner: req.user._id,
+      landlord: landlord._id,
       title,
       description,
       location: {
@@ -49,7 +52,7 @@ const createApartment = async (req, res, next) => {
         latitude: location.latitude,
         longitude: location.longitude,
       },
-      rent,
+      price,
       bedrooms,
       amenities,
       images: imageUploads,
@@ -63,118 +66,69 @@ const createApartment = async (req, res, next) => {
   }
 };
 
-const getAll = async (req, res, next) => {
+
+const updateApartment = async (req, res, next) => {
+  const { id } = req.params;
+  const { title, description, address, city, state, price, bedrooms, amenities } = req.body;
+
   try {
-    const apartments = await Apartment.find();
-    return res.status(200).json({
-      success: true,
-      data: apartments,
-      count: apartments.length,
-    });
+    const apartment = await Apartment.findById(id).populate("landlord");
+    if(!apartment) return res.status(404).json({ error: "Apartment not found" });
+
+    const landlord = await Landlord.findOne({ user: req.user._id });
+    if(!landlord || !landlord._id.equals(apartment.landlord._id)) {
+      return res.status(403).json({ error: "You are not authorized to update this apartment" });
+    };
+
+    apartment.title = title || apartment.title;
+    apartment.description = description || apartment.description;
+    apartment.location.address = address || apartment.location.address;
+    apartment.location.city = city || apartment.location.city;
+    apartment.location.state = state || apartment.location.state;
+    apartment.price = price || apartment.price;
+    apartment.bedrooms = bedrooms || apartment.bedrooms;
+    apartment.amenities = amenities ? amenities.split(",").map((a) => a.trim()) : apartment.amenities;
+    apartment.available = req.body.available !== undefined ? req.body.available : apartment.available;
+    apartment.images = req.files ? await Promise.all(
+      req.files.map(async (file) => {
+        const result = await cloudinary.uploader.upload(file.path, {
+          folder: "apartments",
+        });
+        return result.secure_url;
+      })
+    ) : apartment.images;
+    apartment.location.coordinates = await getCoordinates(`${address}, ${city}, ${state}`) || apartment.location.coordinates;
+    await apartment.save();
+    res.status(200).json({ success: true, data: apartment });
   } catch (error) {
-    return res.status(500).json({
-      success: false,
-      error: "Server Error",
-      details: error.message,
-    });
+    next(error);
   }
 };
 
-const getOne = async (req, res) => {
+
+const deleteApartment = async (req, res, next) => {
+  const { id } = req.params;
   try {
-    const apartment = await Apartment.findById(req.params.id);
+    const apartment = await Apartment.findById(id).populate("landlord");
+    if (!apatment) return res.status(404).json({ error: "Apartment not found" });
 
-    if (!apartment) {
-      return res.status(404).json({
-        success: false,
-        error: "Apartment not found",
-      });
+    const landlord = await Landlord.findOne({ user: req.user._id });
+    if (!landlord || !landlord._id.equals(apartment.landlord._id)) {
+      return res.status(403).json({ error: "You are not authorized to delete this apartment" });
     }
-
-    return res.status(200).json({
-      success: true,
-      data: apartment,
-    });
+    await apartment.remove();
+    res.status(200).json({ success: true, message: "Apartment deleted successfully" });
   } catch (error) {
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid apartment ID",
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: "Server Error",
-      details: error.message,
-    });
+    next(error);
   }
 };
 
-const update = async (req, res) => {
+const getAllApartments = async (req, res, next) => {
   try {
-    const apartment = await Apartment.findByIdAndUpdate(
-      req.params.id,
-      req.body,
-      {
-        new: true,
-        runValidators: true,
-      }
-    );
-
-    if (!apartment) {
-      return res.status(404).json({
-        success: false,
-        error: "Apartment not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: apartment,
-    });
+    const apartments = await Apartment.find().populate("landlord", "user");
+    res.status(200).json({ success: true, count: apartments.length, data: apartments });
   } catch (error) {
-    if (error.name === "ValidationError") {
-      const messages = Object.values(error.errors).map((err) => err.message);
-      return res.status(400).json({
-        success: false,
-        error: messages,
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: "Server Error",
-      details: error.message,
-    });
-  }
-};
-const deleteApartment = async (req, res) => {
-  try {
-    const apartment = await Apartment.findByIdAndDelete(req.params.id);
-
-    if (!apartment) {
-      return res.status(404).json({
-        success: false,
-        error: "Apartment not found",
-      });
-    }
-
-    return res.status(200).json({
-      success: true,
-      data: {},
-      message: "Apartment deleted successfully",
-    });
-  } catch (error) {
-    if (error.name === "CastError") {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid apartment ID",
-      });
-    }
-    return res.status(500).json({
-      success: false,
-      error: "Server Error",
-      details: error.message,
-    });
+    next(error);
   }
 };
 
@@ -357,10 +311,9 @@ const addComment = async (req, res) => {
 
 module.exports = {
   createApartment,
-  getAll,
-  getOne,
-  update,
+  updateApartment,
   deleteApartment,
+  getAllApartments,
   searchApartments,
   incrementViews,
   toggleLike,

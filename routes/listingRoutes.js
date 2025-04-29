@@ -5,14 +5,13 @@ const { imageUploads } = require("../utils/multer");
 const {
   createApartment,
   searchApartments,
-  getOne,
-  getAll,
-  update,
+  updateApartment,  
   deleteApartment,
+  getAllApartments,
   incrementViews,
   toggleLike,
   addComment,
-} = require("../controllers/apartmentcontroller");
+} = require("../controllers/listingcontroller");
 
 router.post("/", protect, imageUploads, async (req, res) => {
   try {
@@ -32,9 +31,8 @@ router.post("/", protect, imageUploads, async (req, res) => {
 });
 
 router.get("/search", searchApartments);
-router.get("/:id", getOne);
-router.get("/", getAll);
-router.put("/:id", protect, update);
+router.get("/", getAllApartments);
+router.put("/:id", protect, updateApartment);
 router.delete("/:id", protect, deleteApartment);
 router.put("/:id/views", incrementViews);
 router.put("/:id/like", protect, toggleLike);

@@ -59,31 +59,6 @@ const register = async (req, res, next) => {
   }
 };
 
-// const verifyEmail = async (req, res) => {
-//   try {
-//     const { token } = req.query;
-
-//     const verificationRecord = await VerificationToken.findOne({ token });
-
-//     if (!verificationRecord) {
-//       return res
-//         .status(400)
-//         .json({ error: "Invalid or expired verification link." });
-//     }
-
-//     await User.findByIdAndUpdate(verificationRecord.userId, {
-//       isVerified: true,
-//     });
-//     await VerificationToken.deleteOne({ token });
-
-//     res
-//       .status(200)
-//       .json({ message: "Email successfully verified. You can now log in." });
-//   } catch (error) {
-//     res.status(400).json({ error: error.message });
-//   }
-// };
-
 const verifyOtp = async (req, res, next) => {
   const {email, otp} = req.body;
   try {
@@ -103,31 +78,23 @@ const verifyOtp = async (req, res, next) => {
 }
 
 const login = async (req, res, next) => {
+  const { email, password } = req.body;
+
   try {
-    const { email, password } = req.body;
-
     const user = await User.findOne({ email });
-
-    if (!user || !user.password) {
-      return res.status(401).json({ error: "Invalid Credentials" });
+    if (!user) {
+      return res.status(400).json({ message: "Invalid email or password" });
     }
-
-    if (!user.isVerified) {
-      return res
-        .status(403)
-        .json({ error: "Please verify your email before logging in." });
-    }
-
     const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(401).json({ error: "Invalid Credentials" });
+    if(!isMatch) return res.status(400).json({ message: "Invalid email or password" });
+    if(!user.isVerified) {
+      return res.status(400).json({ message: "Email not verified" });
     }
-
-    const token = generateToken(user);
-    res.json({ user, token });
+    const token = jwt.sign({ id: user._id, role: user.role}, process.env.JWT_SECRET, { expiresIn: '7d'});
+    res.json({ token, user: { id: user._id, name: user.name, role: user.role }});
   } catch (error) {
-    next(error)
+    next(error);
   }
 };
 
-module.exports = { register, login, googleCallBack, verifOtp };
+module.exports = { register, login, googleCallBack, verifyOtp };

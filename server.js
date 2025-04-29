@@ -1,14 +1,24 @@
 require('dotenv').config();
 const express = require('express');
+const http = require('http');
+const { server } = require('socket.io');
 const cors = require('cors');
 const connectDB = require('./config/database');
 const passport = require('./config/passport')
 const authRoutes = require('./routes/authRoutes')
-const apartmentRoutes = require('./routes/apartmentRoutes')
-
+const landlordRoutes = require('./routes/landlordRoutes');
+const listingRoutes = require('./routes/listingRoutes');
+const chatRoutes = require('./routes/chatRoutes');
 
 const app = express();
-
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: '*',
+        methods: ["GET", "POST"],
+        credentials: true
+    }
+})
 //Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -16,11 +26,25 @@ app.use(cors());
 app.use(passport.initialize());
 
 
-app.use('/uploads', express.static('uploads'))
+app.use('/uploads', express.static('uploads'));
 //Routes
 
 app.use('/api/auth', authRoutes);
-app.use('/api/apartments', apartmentRoutes);
+app.use('/api/listing', listingRoutes);
+app.use('/api/landlord', landlordRoutes);
+app.use('/api/chat', chatRoutes);
+
+io.on('connection', (socket)=> {
+    console.log('New user connected', socket.id);
+
+    socket.on('sendMessage', ({ senderId, receiverId, content })=> {
+        oi.emit('receiveMessage', { senderId, receiverId, content, timestamp: Date.now() });
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected', socket.id);
+    });
+});
 
 app.get('/', (req,res)=>{
     res.send('RentDirect API is running!')
